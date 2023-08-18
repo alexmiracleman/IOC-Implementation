@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans>
+    <bean id="towingService" class="org.alex.entity.TowingService">
+        <property name="customerService" ref="customerService" />
+    </bean>
+
+    <bean id="towingServiceEmergency" class="org.alex.entity.TowingService">
+        <property name="customerService" ref="customerService" />
+        <property name="emergency" value="911" />
+    </bean>
+
+    <bean id="customerService" class="org.alex.entity.CustomerService">
+        <property name="phoneNumber" value="(800)RENTALS" />
+        <property name="email" value="cs@rentals.com" />
+    </bean>
+</beans>
