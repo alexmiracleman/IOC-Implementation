@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <beans>
-    <import resource="classpath:default_import_content_test2.xml" />
+    <import resource="/context/import_context_test.xml"/>
+    <import resource="/context/import_context_test2.xml"/>
 
     <bean id="rentalService" class="org.alex.entity.RentalService">
-        <property name="numberOfCarsAvailable" value="26" />
-        <property name="extraCoverage" value="false" />
-        <property name="customerService" ref="customerService" />
+        <property name="numberOfCarsAvailable" value="26"/>
+        <property name="extraCoverage" value="false"/>
+        <property name="customerService" ref="customerService"/>
     </bean>
 
     <bean id="customerService" class="org.alex.entity.CustomerService">
-        <property name="phoneNumber" value="(800)RENTALS" />
-        <property name="email" value="cs@rentals.com" />
+        <property name="phoneNumber" value="(800)RENTALS"/>
+        <property name="email" value="cs@rentals.com"/>
     </bean>
 </beans>

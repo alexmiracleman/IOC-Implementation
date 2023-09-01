@@ -13,12 +13,21 @@ public class Handler extends DefaultHandler {
     public List<BeanDefinition> getBeanDefinitions() {
         return beanDefinitions;
     }
+    public List<String> getImportPaths() {
+        return importPaths;
+    }
 
     private final List<BeanDefinition> beanDefinitions = new ArrayList<>();
     private BeanDefinition beanDefinition;
+    private List<String> importPaths = new ArrayList<>();
+
 
     @Override
     public void startElement(String uri, String localName, String qName, Attributes attributes) {
+        if (qName.equalsIgnoreCase("import")) {
+            String path = attributes.getValue("resource");
+            importPaths.add(path);
+        }
         if (qName.equalsIgnoreCase("bean")) {
             String id = attributes.getValue("id");
             String className = attributes.getValue("class");
@@ -45,6 +54,7 @@ public class Handler extends DefaultHandler {
             beanDefinitions.add(beanDefinition);
             beanDefinition = null;
         }
+
     }
 
     public void reset() {

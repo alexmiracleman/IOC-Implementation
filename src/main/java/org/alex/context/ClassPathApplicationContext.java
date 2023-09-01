@@ -19,7 +19,7 @@ public class ClassPathApplicationContext implements ApplicationContext {
 
     public ClassPathApplicationContext(BeanDefinitionReader reader) {
         List<BeanDefinition> beanDefinitions = reader.readBeanDefinitions();
-        this.beans = new BeanFactory().makeBeansFromBeanDefinitions(beanDefinitions);
+        this.beans = new BeanFactory().makeBeans(beanDefinitions);
     }
 
     @Override
@@ -36,7 +36,6 @@ public class ClassPathApplicationContext implements ApplicationContext {
     @Override
     public <T> T getBean(String id, Class<T> clazz) {
         parameterCheck(id);
-        parameterCheck(clazz);
         for (Bean bean : beans) {
             if (bean.getId().equals(id) && clazz.isInstance(bean.getValue())) {
                 return clazz.cast(bean.getValue());
@@ -65,30 +64,10 @@ public class ClassPathApplicationContext implements ApplicationContext {
         return beanNames;
     }
 
-    public Object getBean(String id, List<Bean> beans) {
-        parameterCheck(id);
-        for (Bean bean : beans) {
-            if (bean.getId().equals(id)) {
-                return bean.getValue();
-            }
-        }
-        return null;
-    }
-
     void parameterCheck(Class<?> clazz) {
         if (clazz == null) {
             log.error("Bean class is null");
             throw new ContainerException("Bean class is null");
-        }
-        int count = 0;
-        for (Bean bean : beans) {
-            if (clazz.isInstance(bean.getValue())) {
-                count++;
-            }
-        }
-        if (count > 1) {
-            log.error("More than one bean has the same class: {}", clazz.getName());
-            throw new ContainerException("More than one bean has the same class: " + clazz.getName());
         }
     }
 

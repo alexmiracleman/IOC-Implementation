@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans>
+    <bean id="myTowing" class="org.alex.entity.TowingService">
+        <property name="customerService" ref="customerService" />
+    </bean>
+</beans>

@@ -6,6 +6,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -17,17 +18,37 @@ import java.util.HashMap;
 import java.util.List;
 
 public class DOMBeanDefinitionReader implements BeanDefinitionReader {
-    private String[] paths;
+    public String[] paths;
     private BeanDefinition beanDefinition;
+    private List<BeanDefinition> beanDefinitions = new ArrayList<>();
+    private List<String> importPaths = new ArrayList<>();
 
     public DOMBeanDefinitionReader(String... paths) {
         this.paths = paths;
+
     }
 
     @Override
     public List<BeanDefinition> readBeanDefinitions() {
-        List<BeanDefinition> beanDefinitions = new ArrayList<>();
         for (String path : paths) {
+            List<String> importPaths = parseImportFromXML(path);
+            for (String importPath : importPaths) {
+                if (importPath != null) {
+                    NodeList beanList = parseBeansFromXML(importPath);
+                    for (int i = 0; i < beanList.getLength(); i++) {
+                        Element beanElement = (Element) beanList.item(i);
+                        String id = beanElement.getAttribute("id");
+                        String className = beanElement.getAttribute("class");
+                        beanDefinition = new BeanDefinition();
+                        beanDefinition.setId(id);
+                        beanDefinition.setBeanClassName(className);
+                        beanDefinition.setDependencies(new HashMap<>());
+                        beanDefinition.setRefDependencies(new HashMap<>());
+                        fillDependency(beanElement, beanDefinition);
+                        beanDefinitions.add(beanDefinition);
+                    }
+                }
+            }
             NodeList beanList = parseBeansFromXML(path);
             for (int i = 0; i < beanList.getLength(); i++) {
                 Element beanElement = (Element) beanList.item(i);
@@ -40,14 +61,40 @@ public class DOMBeanDefinitionReader implements BeanDefinitionReader {
                 beanDefinition.setRefDependencies(new HashMap<>());
                 fillDependency(beanElement, beanDefinition);
                 beanDefinitions.add(beanDefinition);
+
             }
         }
         return beanDefinitions;
     }
 
+
     public InputStream getResourceAsStream(String path) {
         return getClass().getResourceAsStream(path);
     }
+
+    public List parseImportFromXML(String path) {
+        try (InputStream inputStream = getResourceAsStream(path)) {
+            ByteArrayInputStream content = new ByteArrayInputStream(inputStream.readAllBytes());
+            content.reset();
+            DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder builder = documentBuilderFactory.newDocumentBuilder();
+            Document document = builder.parse(content);
+            document.getDocumentElement().normalize();
+            NodeList nodeList = document.getElementsByTagName("import");
+            for (int i = 0; i < nodeList.getLength(); i++) {
+                Element importElement = (Element) nodeList.item(i);
+                importPaths.add(importElement.getAttribute("resource"));
+            }
+            return importPaths;
+        } catch (ParserConfigurationException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (SAXException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 
     public NodeList parseBeansFromXML(String path) {
         try (InputStream inputStream = getResourceAsStream(path)) {

@@ -3,22 +3,23 @@ package org.alex.context;
 import lombok.extern.slf4j.Slf4j;
 import org.alex.entity.Bean;
 import org.alex.entity.BeanDefinition;
-import org.alex.exception.ContainerException;
+import org.alex.exception.BeanInstantiationException;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 @Slf4j
 public class BeanFactory {
-    public List<Bean> makeBeansFromBeanDefinitions(List<BeanDefinition> beanDefinitions) {
-        List<Bean> beans = getRawBeans(beanDefinitions);
+    public List<Bean> makeBeans(List<BeanDefinition> beanDefinitions) {
+        List<Bean> beans = createListOfBeans(beanDefinitions);
         injectValueDependencies(beans, beanDefinitions);
         injectRefDependencies(beans, beanDefinitions);
         return beans;
     }
 
-    protected List<Bean> getRawBeans(List<BeanDefinition> beanDefinitions) {
+    List<Bean> createListOfBeans(List<BeanDefinition> beanDefinitions) {
         List<Bean> beans = new ArrayList<>();
         for (BeanDefinition definition : beanDefinitions) {
             String beanId = definition.getId();
@@ -27,7 +28,7 @@ public class BeanFactory {
                 object = Class.forName(definition.getBeanClassName()).getConstructor().newInstance();
             } catch (Exception e) {
                 log.error("Failed to create bean instance for the bean: {}", beanId, e);
-                throw new ContainerException("Error creating bean: " + beanId, e);
+                throw new BeanInstantiationException("Error creating bean: " + beanId, e);
             }
             Bean bean = new Bean(beanId, object);
             beans.add(bean);
@@ -35,7 +36,7 @@ public class BeanFactory {
         return beans;
     }
 
-    protected void injectValueDependencies(List<Bean> beans, List<BeanDefinition> beanDefinitions) {
+    void injectValueDependencies(List<Bean> beans, List<BeanDefinition> beanDefinitions) {
         for (BeanDefinition beanDefinition : beanDefinitions) {
             for (Bean bean : beans) {
                 if (beanDefinition.getId().equals(bean.getId())) {
@@ -54,7 +55,7 @@ public class BeanFactory {
         }
     }
 
-    protected void injectRefDependencies(List<Bean> beans, List<BeanDefinition> beanDefinitions) {
+    void injectRefDependencies(List<Bean> beans, List<BeanDefinition> beanDefinitions) {
         for (BeanDefinition beanDefinition : beanDefinitions) {
             for (Bean bean : beans) {
                 if (beanDefinition.getId().equals(bean.getId())) {
@@ -78,22 +79,30 @@ public class BeanFactory {
         }
     }
 
-    protected void setPropertyValue(Object beanInstance, String propertyName, Object propertyValue) {
+    void setPropertyValue(Object beanInstance, String propertyName, Object propertyValue) {
         try {
             Class<?> beanClass = beanInstance.getClass();
             Field field = beanClass.getDeclaredField(propertyName);
-            field.setAccessible(true);
             Class<?> fieldType = field.getType();
             Object convertedValue = setValue(propertyValue, fieldType);
-            field.set(beanInstance, convertedValue);
+            Method setMethod = beanClass.getMethod(generateSetMethodName(propertyName), fieldType);
+            setMethod.invoke(beanInstance, convertedValue);
         } catch (Exception e) {
             log.error("Failed to set property value for the property: {} on the bean instance: {}",
                     propertyName, beanInstance, e);
-            throw new ContainerException("Failed to set property value.", e);
+            throw new BeanInstantiationException("Failed to set property value.", e);
         }
     }
 
-    protected Object setValue(Object propertyValue, Class<?> fieldType) {
+    public static String generateSetMethodName(String fieldName) {
+        return new StringBuilder(16)
+                .append("set")
+                .append(Character.toUpperCase(fieldName.charAt(0)))
+                .append(fieldName.substring(1))
+                .toString();
+    }
+
+    Object setValue(Object propertyValue, Class<?> fieldType) {
         Object value = null;
         if (fieldType.isAssignableFrom(propertyValue.getClass())) {
             value = propertyValue;
@@ -117,7 +126,7 @@ public class BeanFactory {
             }
         } else {
             log.error("Failed to set property value: {}; field type: {}", propertyValue, fieldType);
-            throw new ContainerException("Unsupported data type.");
+            throw new BeanInstantiationException("Unsupported data type.");
         }
         return value;
     }

@@ -1,20 +1,13 @@
 package org.alex.entity;
 
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
+
+@Setter
+@Getter
+@RequiredArgsConstructor
 public class Bean {
-    private String id;
-    private Object value;
-
-
-    public Bean(String id, Object value) {
-        this.id = id;
-        this.value = value;
-    }
-
-    public Object getValue() {
-        return value;
-    }
-
-    public String getId() {
-        return id;
-    }
+    private final String id;
+    private final Object value;
 }
